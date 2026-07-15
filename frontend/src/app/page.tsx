@@ -39,7 +39,8 @@ export default function Home() {
 
   const fetchStatus = async (jwt: string) => {
     try {
-      const res = await fetch("http://localhost:8000/api/status", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/status`, {
         headers: { "Authorization": `Bearer ${jwt}` }
       });
       if (res.status === 401) {
@@ -69,7 +70,8 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8000/api/upload", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/upload`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData
@@ -91,7 +93,8 @@ export default function Home() {
   const handleClearDB = async () => {
     if (!token) return;
     try {
-      const res = await fetch("http://localhost:8000/api/clear", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/clear`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -119,7 +122,8 @@ export default function Home() {
         chat_history: messages.slice(1).map(m => ({ role: m.role, content: m.content }))
       };
 
-      const res = await fetch("http://localhost:8000/api/chat", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/api/chat`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
