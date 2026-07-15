@@ -37,6 +37,15 @@ fake_users_db = {
     }
 }
 
+def register_user(username: str, password: str) -> bool:
+    if username in fake_users_db:
+        return False
+    fake_users_db[username] = {
+        "username": username,
+        "hashed_password": get_password_hash(password),
+    }
+    return True
+
 class User(BaseModel):
     username: str
 

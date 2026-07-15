@@ -24,7 +24,7 @@ from backend.embeddings import EmbeddingGenerator
 from backend.vector_store import VectorStore
 from backend.retriever import Retriever
 from backend.chatbot import ChatbotManager
-from backend.auth import get_current_user, fake_users_db, verify_password, create_access_token, User
+from backend.auth import get_current_user, fake_users_db, verify_password, create_access_token, User, register_user
 
 # App configuration
 VIDEO_FOLDER = os.getenv("VIDEO_FOLDER", "data/videos")
@@ -85,6 +85,18 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not verify_password(form_data.password, user_dict["hashed_password"]):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token = create_access_token(data={"sub": user_dict["username"]})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("/api/register")
+async def register(form_data: OAuth2PasswordRequestForm = Depends()):
+    if not form_data.username or not form_data.password:
+        raise HTTPException(status_code=400, detail="Username and password are required")
+    success = register_user(form_data.username, form_data.password)
+    if not success:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    # Automatically log them in
+    access_token = create_access_token(data={"sub": form_data.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/api/status")
