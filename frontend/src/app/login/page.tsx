@@ -21,7 +21,7 @@ export default function Login() {
       formData.append("username", username);
       formData.append("password", password);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const endpoint = isRegister ? "/api/register" : "/api/login";
       
       const res = await fetch(`${apiUrl}${endpoint}`, {
