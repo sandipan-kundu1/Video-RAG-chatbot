@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import backend.utils  # Ensures ffmpeg path is added to PATH if needed
 import whisper
 
 logger = logging.getLogger(__name__)

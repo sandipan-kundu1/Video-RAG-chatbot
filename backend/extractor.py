@@ -15,12 +15,23 @@ def extract_audio(video_path: str, audio_output_path: str) -> str:
         
     logger.info(f"Extracting audio from {video_path} to {audio_output_path}...")
     
-    # Check for ffmpeg binary or use WinGet links fallback on Windows
+    # Check for ffmpeg binary or use WinGet fallback on Windows
     ffmpeg_bin = "ffmpeg"
-    winget_links_ffmpeg = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "WinGet", "Links", "ffmpeg.exe")
-    if not shutil.which(ffmpeg_bin) and os.path.exists(winget_links_ffmpeg):
-        ffmpeg_bin = winget_links_ffmpeg
-        logger.info(f"Using WinGet links FFmpeg fallback path: {ffmpeg_bin}")
+    if not shutil.which(ffmpeg_bin):
+        import glob
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        # Try finding in WinGet packages
+        winget_packages = os.path.join(local_app_data, "Microsoft", "WinGet", "Packages", "Gyan.FFmpeg*", "**", "bin", "ffmpeg.exe")
+        ffmpeg_paths = glob.glob(winget_packages, recursive=True)
+        if ffmpeg_paths:
+            ffmpeg_bin = ffmpeg_paths[0]
+            logger.info(f"Using WinGet Packages FFmpeg fallback path: {ffmpeg_bin}")
+        else:
+            # Try finding in WinGet Links
+            winget_links_ffmpeg = os.path.join(local_app_data, "Microsoft", "WinGet", "Links", "ffmpeg.exe")
+            if os.path.exists(winget_links_ffmpeg):
+                ffmpeg_bin = winget_links_ffmpeg
+                logger.info(f"Using WinGet links FFmpeg fallback path: {ffmpeg_bin}")
 
     # Run ffmpeg command
     cmd = [

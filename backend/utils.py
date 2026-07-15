@@ -5,10 +5,24 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Add local WinGet Links path to process PATH to ensure FFmpeg is visible to Whisper and subprocesses
-winget_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "WinGet", "Links")
-if os.path.exists(winget_path) and winget_path not in os.environ.get("PATH", ""):
-    os.environ["PATH"] = winget_path + os.pathsep + os.environ.get("PATH", "")
+# Add local WinGet Links/Packages path to process PATH to ensure FFmpeg is visible to Whisper and subprocesses
+import shutil
+import glob
+if not shutil.which("ffmpeg"):
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    added = False
+    # Try finding in WinGet packages
+    winget_packages = os.path.join(local_app_data, "Microsoft", "WinGet", "Packages", "Gyan.FFmpeg*", "**", "bin")
+    ffmpeg_paths = glob.glob(winget_packages, recursive=True)
+    if ffmpeg_paths:
+        bin_dir = ffmpeg_paths[0]
+        os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+        added = True
+    
+    if not added:
+        winget_path = os.path.join(local_app_data, "Microsoft", "WinGet", "Links")
+        if os.path.exists(winget_path) and winget_path not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = winget_path + os.pathsep + os.environ.get("PATH", "")
 
 
 def setup_directories() -> None:

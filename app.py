@@ -2,8 +2,9 @@ import os
 import shutil
 import logging
 from typing import List, Dict, Any
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -23,6 +24,7 @@ from backend.embeddings import EmbeddingGenerator
 from backend.vector_store import VectorStore
 from backend.retriever import Retriever
 from backend.chatbot import ChatbotManager
+from backend.auth import get_current_user, fake_users_db, verify_password, create_access_token, User
 
 # App configuration
 VIDEO_FOLDER = os.getenv("VIDEO_FOLDER", "data/videos")
@@ -75,8 +77,18 @@ class ChatRequest(BaseModel):
     query: str
     chat_history: List[ChatMessage] = []
 
+@app.post("/api/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    if form_data.username not in fake_users_db:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    user_dict = fake_users_db[form_data.username]
+    if not verify_password(form_data.password, user_dict["hashed_password"]):
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    access_token = create_access_token(data={"sub": user_dict["username"]})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.get("/api/status")
-def get_status():
+def get_status(current_user: User = Depends(get_current_user)):
     """Returns the processing status of videos and vector store."""
     try:
         videos = []
@@ -97,7 +109,7 @@ def get_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/upload")
-async def upload_video(file: UploadFile = File(...)):
+async def upload_video(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
     """Uploads a video, extracts audio, transcribes, chunks, and builds FAISS index."""
     if not file.filename.lower().endswith(".mp4"):
         raise HTTPException(status_code=400, detail="Only MP4 videos are supported.")
@@ -165,7 +177,7 @@ async def upload_video(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 @app.post("/api/chat")
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, current_user: User = Depends(get_current_user)):
     """Retrieves relevant transcript chunks and answers using Gemini."""
     try:
         # Check if index has chunks
@@ -197,7 +209,7 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Chat execution failed: {str(e)}")
 
 @app.post("/api/clear")
-def clear_data():
+def clear_data(current_user: User = Depends(get_current_user)):
     """Clears all cached audio, video, transcripts, chunks, and FAISS index."""
     try:
         # Clear vector store in memory
